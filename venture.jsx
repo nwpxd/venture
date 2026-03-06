@@ -2229,23 +2229,23 @@ Return ONLY the JSON array. No markdown fences.`
               {[
                 {
                   num: "01",
-                  title: "AI scans live markets with web search",
-                  desc: "Claude searches the web for trending niches, emerging platforms, Reddit communities, and market gaps in real-time.",
+                  title: "Wave 1: AI sweeps 6 data channels",
+                  desc: "Claude searches Reddit, Product Hunt, Google Trends, X/Twitter, regulatory changes, and seasonal patterns simultaneously.",
                 },
                 {
                   num: "02",
-                  title: "You review and iterate",
-                  desc: "Each opportunity is presented with full analysis. Send it back for revision with specific feedback, or approve it.",
+                  title: "Wave 2: Deep-dive validation",
+                  desc: "Top signals get validated in parallel — real competitors, TAM estimates, demand proof, and timing windows. Weak signals are killed.",
                 },
                 {
                   num: "03",
-                  title: "AI builds full automation pipeline",
-                  desc: "On approval, Claude researches free tools and builds a complete step-by-step operational playbook.",
+                  title: "Wave 3: Score & rank",
+                  desc: "Survivors are scored on 5 axes (timing, market gap, feasibility, automation, revenue speed) and ranked. Best opportunity surfaces first.",
                 },
                 {
                   num: "04",
-                  title: "PDF playbook generated for execution",
-                  desc: "A professional multi-page PDF document is generated client-side with all details needed to launch.",
+                  title: "You review, iterate, approve",
+                  desc: "Each opportunity shows its confidence score and validation evidence. Send it back for revision or approve to generate a full automation pipeline + PDF.",
                 },
               ].map((step) => (
                 <div key={step.num} style={{ display: "flex", gap: 14, marginBottom: 16 }}>
