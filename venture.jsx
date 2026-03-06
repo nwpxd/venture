@@ -1931,12 +1931,11 @@ Return ONLY the JSON array. No markdown fences.`
 
             {/* Scan progress */}
             {scanning && (
-              <div style={{ marginBottom: 20 }}>
-                <div style={{ height: 2, background: C.border, borderRadius: 1, overflow: "hidden", marginBottom: 8 }}>
-                  <div className="scan-progress" style={{ height: "100%", background: C.accent, borderRadius: 1 }} />
-                </div>
-                <p style={{ fontFamily: font.mono, fontSize: 11, color: C.accent, margin: 0 }}>{scanPhase}</p>
-              </div>
+              <WaveProgress
+                currentWave={scanWave}
+                scanSignals={scanSignals}
+                scanProgress={scanProgress}
+              />
             )}
 
             {/* Error */}
