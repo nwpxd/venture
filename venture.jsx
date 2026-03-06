@@ -1410,53 +1410,212 @@ export default function VentureApp() {
   const approvedCount = ideas.filter((i) => i.status === "approved").length;
   const pipelineCount = ideas.filter((i) => i.pipeline !== null).length;
 
-  // ─── Scan ───
+  // ─── Scan (3-Wave Architecture) ───
   const handleScan = async () => {
     if (scanning || !apiKey) return;
     setScanning(true);
     setError(null);
-    setScanPhase("// phase 1: searching live market data...");
+    setScanWave(1);
+    setScanSignals([]);
+    setScanProgress("");
+    setScanPhase("// wave 1: sweeping 6 data channels...");
 
     const existingNames = ideas.map((i) => i.name).join(", ");
 
     try {
-      // Call 1: Research with web search
-      const researchText = await callClaude(
+      // ═══ WAVE 1: Broad Trend Sweep ═══
+      const sweepText = await callClaude(
         apiKey,
-        `You are an elite zero-capital business opportunity analyst with 20 years of experience identifying asymmetric market opportunities. You have deep expertise in digital business models, automation, affiliate marketing, content arbitrage, SaaS, AI-powered services, and global market trends. Your job is to find REAL, specific, actionable opportunities that exist RIGHT NOW — not generic ideas. Use web search to find current trending niches, underserved markets, emerging platforms, and arbitrage gaps. Look for: Google Trends spikes, Reddit communities with monetization gaps, new platform APIs being released, undermonetized audiences, regulatory changes creating new markets, seasonal opportunities, geographic arbitrage between markets, tools people are paying for that could be automated for free. Think like a venture scout and a street hustler simultaneously. CRITICAL RULE: Every idea must be startable with literally €0. No paid tools, no inventory, no ad spend required to begin.`,
-        `Search the web for current market trends, emerging platforms, underserved niches, and zero-capital business opportunities. Look at what's trending on Reddit, Product Hunt, Twitter/X, Google Trends right now. Find 2 highly specific, timely opportunities that a solo operator could start TODAY with zero euros. Return your research findings as raw text — what you found, what signals you see, why these opportunities exist right now.`,
+        `You are an elite market intelligence analyst. Your job is to scan 6 data channels simultaneously and identify raw market signals — emerging opportunities that a zero-capital solo operator could exploit RIGHT NOW.
+
+Scan these 6 channels:
+1. REDDIT/COMMUNITIES — subreddits with monetization gaps, growing communities with unmet needs, pain points people are paying to solve
+2. PRODUCT HUNT/LAUNCHES — new tools creating ecosystem opportunities, APIs just released, platforms with early-mover advantages
+3. GOOGLE TRENDS — spiking search terms with low competition, emerging categories, breakout queries
+4. X/TWITTER — viral pain points, complaints about existing solutions going viral, underserved creator niches
+5. REGULATORY/POLICY — new laws, platform policy changes, compliance requirements creating market openings
+6. SEASONAL/TIMING — upcoming events, cyclical demand windows opening, cultural moments creating short-term opportunities
+
+Use web search to find REAL, CURRENT signals from each channel. Not hypothetical — actual data you can find right now.
+
+Return ONLY valid JSON array, no markdown, no explanation.`,
+        `Search the web across all 6 channels for current market signals and emerging opportunities. Find 6-8 specific, timely signals.${existingNames ? `\nAvoid signals related to these already-found ideas: ${existingNames}` : ""}
+
+Return ONLY a JSON array with this schema:
+[
+  {
+    "signal_name": "short descriptive name",
+    "channel_source": "one of: Reddit, ProductHunt, GoogleTrends, Twitter, Regulatory, Seasonal",
+    "raw_evidence": "specific data point or observation from web search",
+    "opportunity_hint": "1 sentence on what business opportunity this signal suggests",
+    "urgency": 8
+  }
+]
+
+Return 6-8 signals. urgency is 1-10 (10 = most urgent/time-sensitive). Return ONLY the JSON array.`,
         [{ type: "web_search_20250305", name: "web_search" }]
       );
 
-      setScanPhase("// phase 2: analyzing opportunities...");
+      let signals = extractJSON(sweepText);
 
-      // Call 2: Structure into JSON
-      const doNotRepeat = existingNames ? `\nDo NOT repeat any of these already-proposed ideas: ${existingNames}` : "";
-      const structuredText = await callClaude(
-        apiKey,
-        `You are a business analyst. Convert raw market research into structured business proposals. Return ONLY valid JSON array, no markdown, no explanation.`,
-        `Based on this market research:\n\n${researchText}\n\nCreate exactly 2 structured business opportunity proposals. Return ONLY a valid JSON array with this exact schema for each idea:\n[\n{\n  "name": "string — punchy business name",\n  "category": "one of: [Digital Products, Affiliate, Content, SaaS, Services, E-commerce, Community, AI-powered, Arbitrage]",\n  "tagline": "one sharp sentence",\n  "pitch": "3-4 sentences — the opportunity, why now, why zero capital works here",\n  "startupCapital": "€0",\n  "timeToFirstRevenue": "realistic estimate",\n  "automationScore": "integer 0-100",\n  "earningsPotential": "e.g. €500-3000/mo",\n  "firstStep": "the single most important action to take TODAY for free",\n  "marketSignal": "what specific trend/data point makes this timely",\n  "targetAudience": "specific description of who pays",\n  "revenueModel": "exactly how money is made",\n  "zeroCapitalMechanism": "specifically why this needs €0 to start",\n  "competitionLevel": "Low/Medium/High with brief reason",\n  "geographicFocus": "where this works best or Global"\n}\n]${doNotRepeat}\n\nReturn ONLY the JSON array. No markdown fences, no explanation.`
-      );
-
-      setScanPhase("// phase 3: structuring proposals...");
-
-      let parsed = extractJSON(structuredText);
-
-      // Retry once if parse fails
-      if (!parsed || !Array.isArray(parsed)) {
+      if (!signals || !Array.isArray(signals)) {
         const retryText = await callClaude(
           apiKey,
-          "Return ONLY a valid JSON array. No markdown, no explanation, no code fences. Just the raw JSON array.",
-          `Convert this into a valid JSON array:\n\n${structuredText}\n\nReturn ONLY the JSON array.`
+          "Return ONLY a valid JSON array. No markdown, no explanation, no code fences.",
+          `Convert this into a valid JSON array of market signals:\n\n${sweepText}\n\nReturn ONLY the JSON array.`
         );
-        parsed = extractJSON(retryText);
+        signals = extractJSON(retryText);
       }
 
-      if (parsed && Array.isArray(parsed)) {
-        const newIdeas = parsed.map((item) => ({
+      if (!signals || !Array.isArray(signals) || signals.length === 0) {
+        throw new Error("Wave 1 failed: Could not extract market signals. Try scanning again.");
+      }
+
+      // Sort by urgency, take top 4
+      signals.sort((a, b) => (b.urgency || 0) - (a.urgency || 0));
+      const topSignals = signals.slice(0, 4);
+      setScanSignals(signals);
+
+      // ═══ WAVE 2: Deep-Dive Validation ═══
+      setScanWave(2);
+      setScanPhase("// wave 2: validating top signals...");
+
+      const validationPromises = topSignals.map((signal, idx) => {
+        setScanProgress(`${idx + 1}/${topSignals.length}`);
+        return callClaude(
+          apiKey,
+          `You are a market validation analyst. Your job is to deep-dive into a specific market signal and determine if it represents a REAL, actionable zero-capital business opportunity. Be brutally honest — kill weak signals.
+
+Use web search to find:
+1. Real competitor names, their pricing, and specific weaknesses
+2. TAM (total addressable market) estimate with actual data
+3. Demand proof: community sizes, search volumes, spending signals
+4. Timing window: why this works NOW specifically
+5. Zero-capital feasibility: specific free tools that make this possible
+
+Return ONLY valid JSON, no markdown, no explanation.`,
+          `Validate this market signal with targeted web research:
+
+Signal: ${signal.signal_name}
+Source: ${signal.channel_source}
+Evidence: ${signal.raw_evidence}
+Opportunity: ${signal.opportunity_hint}
+
+Search the web to validate or kill this signal. Return ONLY a JSON object:
+{
+  "signal": "${signal.signal_name}",
+  "validated": true,
+  "competitors": [{"name": "CompanyX", "pricing": "$29/mo", "weakness": "specific weakness"}],
+  "tamEstimate": "$X.XB growing XX% YoY",
+  "demandProof": ["specific data point 1", "specific data point 2"],
+  "timingWindow": "why this works right now specifically",
+  "freeTools": ["tool1 — what it does", "tool2 — what it does"],
+  "killReason": null,
+  "validatedOpportunity": "refined 1-sentence opportunity description"
+}
+
+Set validated to false and killReason to a specific reason if the signal is weak, saturated, or not feasible with zero capital. Return ONLY the JSON object.`,
+          [{ type: "web_search_20250305", name: "web_search" }]
+        ).then((text) => {
+          let data = extractJSON(text);
+          if (!data) {
+            return { signal: signal.signal_name, validated: false, killReason: "Failed to parse validation data" };
+          }
+          return data;
+        }).catch(() => {
+          return { signal: signal.signal_name, validated: false, killReason: "Validation call failed" };
+        });
+      });
+
+      const validationResults = await Promise.all(validationPromises);
+      const validated = validationResults.filter((v) => v.validated !== false);
+
+      if (validated.length === 0) {
+        throw new Error("Wave 2: All signals were killed during validation. Try scanning again for fresh signals.");
+      }
+
+      // ═══ WAVE 3: Scoring & Ranking ═══
+      setScanWave(3);
+      setScanPhase("// wave 3: scoring & ranking opportunities...");
+      setScanProgress("");
+
+      const doNotRepeat = existingNames ? `\nDo NOT repeat any of these already-proposed ideas: ${existingNames}` : "";
+      const scoredText = await callClaude(
+        apiKey,
+        `You are a business scoring and ranking analyst. Take validated market opportunities and:
+1. Score each on 5 axes (0-100): timingUrgency, marketGapSize, zeroCapitalFeasibility, automationPotential, revenueSpeed
+2. Calculate compositeScore as weighted average (timing 25%, gap 20%, feasibility 20%, automation 15%, speed 20%)
+3. Structure into full business proposals
+4. Rank by compositeScore descending
+
+Return ONLY valid JSON array, no markdown, no explanation.`,
+        `Here are ${validated.length} validated market opportunities with their evidence:
+
+${JSON.stringify(validated, null, 2)}
+
+For each validated opportunity, create a ranked business proposal. Return ONLY a JSON array sorted by compositeScore (highest first):
+[
+  {
+    "name": "punchy business name",
+    "category": "one of: [Digital Products, Affiliate, Content, SaaS, Services, E-commerce, Community, AI-powered, Arbitrage]",
+    "tagline": "one sharp sentence",
+    "pitch": "3-4 sentences — the opportunity, why now, why zero capital works",
+    "startupCapital": "€0",
+    "timeToFirstRevenue": "realistic estimate",
+    "automationScore": 75,
+    "earningsPotential": "€500-3000/mo",
+    "firstStep": "single most important action TODAY",
+    "marketSignal": "the specific trend/data point",
+    "targetAudience": "specific who-pays description",
+    "revenueModel": "exactly how money is made",
+    "zeroCapitalMechanism": "specifically why €0 to start",
+    "competitionLevel": "Low/Medium/High with reason",
+    "geographicFocus": "where or Global",
+    "compositeScore": 82,
+    "rank": 1,
+    "scoreBreakdown": {
+      "timingUrgency": 90,
+      "marketGapSize": 85,
+      "zeroCapitalFeasibility": 75,
+      "automationPotential": 70,
+      "revenueSpeed": 80
+    },
+    "validationData": {
+      "competitors": [{"name": "X", "pricing": "$Y/mo", "weakness": "Z"}],
+      "tamEstimate": "$X.XB",
+      "demandProof": ["proof1", "proof2"],
+      "timingWindow": "why now",
+      "freeTools": ["tool1", "tool2"]
+    }
+  }
+]${doNotRepeat}
+
+Return ONLY the JSON array. No markdown fences.`
+      );
+
+      let scored = extractJSON(scoredText);
+
+      if (!scored || !Array.isArray(scored)) {
+        const retryText = await callClaude(
+          apiKey,
+          "Return ONLY a valid JSON array. No markdown, no explanation, no code fences.",
+          `Fix this into a valid JSON array:\n${scoredText}\nReturn ONLY the JSON array.`
+        );
+        scored = extractJSON(retryText);
+      }
+
+      if (scored && Array.isArray(scored)) {
+        // Sort by compositeScore descending
+        scored.sort((a, b) => (b.compositeScore || 0) - (a.compositeScore || 0));
+
+        const newIdeas = scored.map((item, idx) => ({
           id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
           ...item,
           automationScore: parseInt(item.automationScore) || 50,
+          compositeScore: parseInt(item.compositeScore) || 50,
+          rank: idx + 1,
+          scoreBreakdown: item.scoreBreakdown || {},
+          validationData: item.validationData || {},
           status: "pending",
           revisions: 0,
           aiRevisionNote: null,
@@ -1466,14 +1625,17 @@ export default function VentureApp() {
         }));
         setIdeas((prev) => [...newIdeas, ...prev]);
       } else {
-        setError("Failed to parse AI response. Try scanning again.");
+        setError("Wave 3 failed: Could not parse scored results. Try scanning again.");
       }
     } catch (err) {
       setError(err.message);
     }
 
     setScanning(false);
+    setScanWave(0);
+    setScanSignals([]);
     setScanPhase("");
+    setScanProgress("");
   };
 
   // ─── Approve ───
