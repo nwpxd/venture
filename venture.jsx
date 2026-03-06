@@ -1043,7 +1043,7 @@ const IdeaCard = ({ idea, onApprove, onDecline, onRevise, apiKey }) => {
         </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <StatusChip status={idea.status} />
-            {idea.compositeScore && (
+            {idea.compositeScore != null && (
               <span
                 style={{
                   fontFamily: font.mono,
@@ -1651,8 +1651,8 @@ Return 6-8 signals. urgency is 1-10 (10 = most urgent/time-sensitive). Return ON
       setScanWave(2);
       setScanPhase("// wave 2: validating top signals...");
 
-      const validationPromises = topSignals.map((signal, idx) => {
-        setScanProgress(`${idx + 1}/${topSignals.length}`);
+      let completedCount = 0;
+      const validationPromises = topSignals.map((signal) => {
         return callClaude(
           apiKey,
           `You are a market validation analyst. Your job is to deep-dive into a specific market signal and determine if it represents a REAL, actionable zero-capital business opportunity. Be brutally honest — kill weak signals.
@@ -1688,12 +1688,17 @@ Search the web to validate or kill this signal. Return ONLY a JSON object:
 Set validated to false and killReason to a specific reason if the signal is weak, saturated, or not feasible with zero capital. Return ONLY the JSON object.`,
           [{ type: "web_search_20250305", name: "web_search" }]
         ).then((text) => {
+          completedCount++;
+          setScanProgress(`${completedCount}/${topSignals.length}`);
           let data = extractJSON(text);
           if (!data) {
             return { signal: signal.signal_name, validated: false, killReason: "Failed to parse validation data" };
           }
           return data;
         }).catch(() => {
+          completedCount++;
+          setScanProgress(`${completedCount}/${topSignals.length}`);
+
           return { signal: signal.signal_name, validated: false, killReason: "Validation call failed" };
         });
       });
