@@ -984,6 +984,7 @@ const IdeaCard = ({ idea, onApprove, onDecline, onRevise, apiKey }) => {
   const [showFeedback, setShowFeedback] = useState(false);
   const [feedback, setFeedback] = useState("");
   const [sending, setSending] = useState(false);
+  const [showValidation, setShowValidation] = useState(false);
   const textareaRef = useRef(null);
 
   useEffect(() => {
@@ -1192,6 +1193,118 @@ const IdeaCard = ({ idea, onApprove, onDecline, onRevise, apiKey }) => {
           {idea.firstStep}
         </p>
       </Callout>
+
+      {/* Validation Evidence */}
+      {idea.validationData && Object.keys(idea.validationData).length > 0 && (
+        <div style={{ marginBottom: 14 }}>
+          <div
+            onClick={() => setShowValidation(!showValidation)}
+            style={{
+              fontFamily: font.mono,
+              fontSize: 10,
+              color: C.blue,
+              fontWeight: 600,
+              cursor: "pointer",
+              padding: "6px 0",
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              letterSpacing: 1,
+              userSelect: "none",
+            }}
+          >
+            <span style={{ transition: "transform 0.2s", display: "inline-block", transform: showValidation ? "rotate(90deg)" : "rotate(0)" }}>
+              ▶
+            </span>
+            VALIDATION EVIDENCE
+          </div>
+
+          {showValidation && (
+            <div className="card-enter" style={{ background: C.s2, borderRadius: 4, padding: 14, marginTop: 4 }}>
+              {/* Competitors */}
+              {idea.validationData.competitors && idea.validationData.competitors.length > 0 && (
+                <div style={{ marginBottom: 12 }}>
+                  <div style={{ fontFamily: font.mono, fontSize: 9, color: C.dim, letterSpacing: 1, marginBottom: 6 }}>
+                    COMPETITORS
+                  </div>
+                  {idea.validationData.competitors.map((c, i) => (
+                    <div key={i} style={{ fontFamily: font.mono, fontSize: 11, color: C.text, marginBottom: 4, paddingLeft: 8, borderLeft: `2px solid ${C.red}40` }}>
+                      <span style={{ color: C.orange, fontWeight: 600 }}>{c.name}</span>
+                      {c.pricing && <span style={{ color: C.dim }}> — {c.pricing}</span>}
+                      {c.weakness && <div style={{ color: C.muted, fontSize: 10, marginTop: 1 }}>Weakness: {c.weakness}</div>}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* TAM */}
+              {idea.validationData.tamEstimate && (
+                <div style={{ marginBottom: 12 }}>
+                  <div style={{ fontFamily: font.mono, fontSize: 9, color: C.dim, letterSpacing: 1, marginBottom: 4 }}>
+                    MARKET SIZE (TAM)
+                  </div>
+                  <div style={{ fontFamily: font.mono, fontSize: 12, color: C.accent, fontWeight: 600 }}>
+                    {idea.validationData.tamEstimate}
+                  </div>
+                </div>
+              )}
+
+              {/* Demand Proof */}
+              {idea.validationData.demandProof && idea.validationData.demandProof.length > 0 && (
+                <div style={{ marginBottom: 12 }}>
+                  <div style={{ fontFamily: font.mono, fontSize: 9, color: C.dim, letterSpacing: 1, marginBottom: 4 }}>
+                    DEMAND PROOF
+                  </div>
+                  {idea.validationData.demandProof.map((proof, i) => (
+                    <div key={i} style={{ fontFamily: font.mono, fontSize: 10, color: C.green, marginBottom: 3, paddingLeft: 8 }}>
+                      ✓ {proof}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Timing Window */}
+              {idea.validationData.timingWindow && (
+                <div style={{ marginBottom: 12 }}>
+                  <div style={{ fontFamily: font.mono, fontSize: 9, color: C.dim, letterSpacing: 1, marginBottom: 4 }}>
+                    TIMING WINDOW
+                  </div>
+                  <div style={{ fontFamily: font.mono, fontSize: 11, color: C.orange }}>
+                    {idea.validationData.timingWindow}
+                  </div>
+                </div>
+              )}
+
+              {/* Free Tools */}
+              {idea.validationData.freeTools && idea.validationData.freeTools.length > 0 && (
+                <div>
+                  <div style={{ fontFamily: font.mono, fontSize: 9, color: C.dim, letterSpacing: 1, marginBottom: 4 }}>
+                    FREE TOOLS STACK
+                  </div>
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                    {idea.validationData.freeTools.map((tool, i) => (
+                      <span
+                        key={i}
+                        style={{
+                          fontFamily: font.mono,
+                          fontSize: 9,
+                          padding: "3px 8px",
+                          borderRadius: 2,
+                          background: `${C.blue}15`,
+                          color: C.blue,
+                          border: `1px solid ${C.blue}30`,
+                        }}
+                      >
+                        {tool}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* AI Revision Note */}
       {idea.aiRevisionNote && (
