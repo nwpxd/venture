@@ -182,6 +182,118 @@ const GridOverlay = () => (
   />
 );
 
+// ─── Wave Progress Tracker ───
+const WaveProgress = ({ currentWave, scanSignals, scanProgress }) => {
+  const waves = [
+    { num: 1, label: "SWEEP", desc: "scanning 6 data channels" },
+    { num: 2, label: "VALIDATE", desc: `deep-diving signals ${scanProgress || ""}` },
+    { num: 3, label: "RANK", desc: "scoring & ranking" },
+  ];
+
+  return (
+    <div style={{ marginBottom: 20 }}>
+      {/* Wave steps */}
+      <div style={{ display: "flex", alignItems: "center", gap: 0, marginBottom: 12 }}>
+        {waves.map((w, i) => {
+          const isActive = currentWave === w.num;
+          const isDone = currentWave > w.num;
+          const isPending = currentWave < w.num;
+
+          return (
+            <React.Fragment key={w.num}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                {/* Circle */}
+                <div
+                  style={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: "50%",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontFamily: font.mono,
+                    fontSize: 11,
+                    fontWeight: 700,
+                    background: isDone ? C.green : isActive ? C.accent : C.s3,
+                    color: isDone || isActive ? "#080808" : C.dim,
+                    border: isActive ? "none" : `1px solid ${isDone ? C.green : C.border}`,
+                    animation: isActive ? "pulse 1.5s ease-in-out infinite" : "none",
+                  }}
+                >
+                  {isDone ? "\u2713" : w.num}
+                </div>
+                {/* Label */}
+                <div>
+                  <div
+                    style={{
+                      fontFamily: font.mono,
+                      fontSize: 10,
+                      fontWeight: 600,
+                      color: isDone ? C.green : isActive ? C.accent : C.dim,
+                      letterSpacing: 1,
+                    }}
+                  >
+                    {w.label}
+                  </div>
+                  {isActive && (
+                    <div style={{ fontFamily: font.mono, fontSize: 9, color: C.muted, marginTop: 1 }}>
+                      {w.desc}
+                    </div>
+                  )}
+                </div>
+              </div>
+              {/* Connector line */}
+              {i < waves.length - 1 && (
+                <div
+                  style={{
+                    flex: 1,
+                    height: 2,
+                    background: currentWave > w.num ? C.green : C.border,
+                    margin: "0 12px",
+                    minWidth: 30,
+                  }}
+                />
+              )}
+            </React.Fragment>
+          );
+        })}
+      </div>
+
+      {/* Active wave progress bar */}
+      <div style={{ height: 2, background: C.border, borderRadius: 1, overflow: "hidden", marginBottom: 6 }}>
+        <div className="scan-progress" style={{ height: "100%", background: currentWave > 0 ? C.accent : "transparent", borderRadius: 1 }} />
+      </div>
+
+      {/* Signal feed from Wave 1 */}
+      {scanSignals && scanSignals.length > 0 && currentWave >= 2 && (
+        <div style={{ marginTop: 8 }}>
+          <div style={{ fontFamily: font.mono, fontSize: 9, color: C.dim, letterSpacing: 1, marginBottom: 6 }}>
+            DETECTED SIGNALS
+          </div>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {scanSignals.map((sig, i) => (
+              <span
+                key={i}
+                style={{
+                  fontFamily: font.mono,
+                  fontSize: 9,
+                  padding: "3px 8px",
+                  borderRadius: 2,
+                  background: `${C.accent}15`,
+                  color: C.accent,
+                  border: `1px solid ${C.accent}30`,
+                }}
+              >
+                {sig.signal_name}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ─── API helper ───
 const callClaude = async (apiKey, systemPrompt, userMessage, tools = [], maxTokens = 8000) => {
   const body = {
@@ -1288,6 +1400,9 @@ export default function VentureApp() {
   const [ideas, setIdeas] = useState([]);
   const [scanning, setScanning] = useState(false);
   const [scanPhase, setScanPhase] = useState("");
+  const [scanWave, setScanWave] = useState(0);
+  const [scanSignals, setScanSignals] = useState([]);
+  const [scanProgress, setScanProgress] = useState("");
   const [error, setError] = useState(null);
 
   // ─── Counts ───
