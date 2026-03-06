@@ -1040,7 +1040,26 @@ const IdeaCard = ({ idea, onApprove, onDecline, onRevise, apiKey }) => {
           </Badge>
           {idea.revisions > 0 && <Badge color={C.blue}>↻ REVISED {idea.revisions}x</Badge>}
         </div>
-        <StatusChip status={idea.status} />
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <StatusChip status={idea.status} />
+            {idea.compositeScore && (
+              <span
+                style={{
+                  fontFamily: font.mono,
+                  fontSize: 11,
+                  fontWeight: 700,
+                  padding: "3px 10px",
+                  borderRadius: 2,
+                  background: `${idea.compositeScore >= 75 ? C.green : idea.compositeScore >= 50 ? C.orange : C.red}20`,
+                  color: idea.compositeScore >= 75 ? C.green : idea.compositeScore >= 50 ? C.orange : C.red,
+                  border: `1px solid ${idea.compositeScore >= 75 ? C.green : idea.compositeScore >= 50 ? C.orange : C.red}40`,
+                  letterSpacing: 1,
+                }}
+              >
+                CONFIDENCE: {idea.compositeScore}
+              </span>
+            )}
+          </div>
       </div>
 
       <h3
@@ -1098,6 +1117,45 @@ const IdeaCard = ({ idea, onApprove, onDecline, onRevise, apiKey }) => {
           </div>
         ))}
       </div>
+
+      {/* Score breakdown bars */}
+      {idea.scoreBreakdown && Object.keys(idea.scoreBreakdown).length > 0 && (
+        <div style={{ marginBottom: 14 }}>
+          <div style={{ fontFamily: font.mono, fontSize: 9, color: C.dim, letterSpacing: 1, marginBottom: 8 }}>
+            SCORE BREAKDOWN
+          </div>
+          {[
+            { key: "timingUrgency", label: "TIMING", color: C.orange },
+            { key: "marketGapSize", label: "MARKET GAP", color: C.blue },
+            { key: "zeroCapitalFeasibility", label: "ZERO-CAP", color: C.green },
+            { key: "automationPotential", label: "AUTOMATION", color: C.accent },
+            { key: "revenueSpeed", label: "REV SPEED", color: "#FF6BFF" },
+          ].map((axis) => {
+            const val = parseInt(idea.scoreBreakdown[axis.key]) || 0;
+            return (
+              <div key={axis.key} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                <div style={{ fontFamily: font.mono, fontSize: 9, color: C.dim, width: 80, textAlign: "right" }}>
+                  {axis.label}
+                </div>
+                <div style={{ flex: 1, height: 6, background: C.s3, borderRadius: 3, overflow: "hidden" }}>
+                  <div
+                    style={{
+                      width: `${val}%`,
+                      height: "100%",
+                      background: axis.color,
+                      borderRadius: 3,
+                      transition: "width 0.5s ease-out",
+                    }}
+                  />
+                </div>
+                <div style={{ fontFamily: font.mono, fontSize: 9, color: axis.color, width: 24, textAlign: "right", fontWeight: 600 }}>
+                  {val}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Secondary metrics */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
